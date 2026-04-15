@@ -57,6 +57,7 @@ func mapNode(n *html.Node) *models.Node {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		childNode := mapNode(c)
 		if childNode != nil {
+			childNode.Parent = myNode
 			myNode.Children = append(myNode.Children, childNode)
 		}
 	}

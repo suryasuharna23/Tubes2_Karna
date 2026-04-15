@@ -7,6 +7,7 @@ type Node struct {
 	Attributes  map[string]string `json:"attributes,omitempty"`
 	TextContent string            `json:"text_content,omitempty"`
 	Children    []*Node           `json:"children,omitempty"` // children nodes from the DOM tree
+	Parent      *Node             `json:"-"`
 }
 
 // Input from the frontend for DOM traversal
@@ -24,4 +25,5 @@ type TraversalResponse struct {
 	NodesVisited    int      `json:"nodes_visited"`
 	MatchedNodes    []*Node  `json:"matched_nodes"`
 	TraversalLog    []string `json:"traversal_log"`
+	FullTree        *Node    `json:"full_tree"`
 }

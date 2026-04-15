@@ -1,7 +1,7 @@
 export interface DOMNode {
   tag_name: string;
   id?: string;
-  classes?: string[];
+  classes?: string | string[];
   attributes?: Record<string, string>;
   text_content?: string;
   children: DOMNode[];
@@ -20,4 +20,5 @@ export interface TraversalResponse {
   nodes_visited: number;
   matched_nodes: DOMNode[];
   traversal_log: string[];
+  full_tree?: DOMNode;
 }

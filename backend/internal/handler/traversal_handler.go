@@ -66,6 +66,7 @@ func HandleTraversal(w http.ResponseWriter, r *http.Request) {
 		NodesVisited:    engine.NodesVisited,
 		MatchedNodes:    engine.Matches,
 		TraversalLog:    engine.Log,
+		FullTree:        domTree,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
