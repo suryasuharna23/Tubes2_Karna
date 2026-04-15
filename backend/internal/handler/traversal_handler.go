@@ -1,9 +1,8 @@
-package main
+package handler
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -12,7 +11,8 @@ import (
 	"tubes2-backend/internal/traversal"
 )
 
-func handleTraversal(w http.ResponseWriter, r *http.Request) {
+func HandleTraversal(w http.ResponseWriter, r *http.Request) {
+	// Setup CORS
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -72,13 +72,4 @@ func handleTraversal(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, "Gagal menyusun response JSON", http.StatusInternalServerError)
 	}
-}
-
-func main() {
-	http.HandleFunc("/api/traverse", handleTraversal)
-
-	port := ":8080"
-	fmt.Printf("Backend server berjalan di port %s...\n", port)
-
-	log.Fatal(http.ListenAndServe(port, nil))
 }
