@@ -1,8 +1,10 @@
 package traversal
 
 import (
+	"runtime"
 	"strings"
-
+	"sync"
+	"sync/atomic"
 	"tubes2-backend/internal/models"
 )
 
@@ -14,9 +16,16 @@ type SearchEngine struct {
 	NodesVisited int
 	Log          []string
 	Matches      []*models.Node
+	mu   sync.Mutex  
+	done atomic.Bool 
+	sem  chan struct{}
 }
 
 func NewSearchEngine(root *models.Node, selector, algo string, count int) *SearchEngine {
+	limit := runtime.NumCPU() * 2
+	if limit < 4 {
+		limit = 4
+	}
 	return &SearchEngine{
 		RootNode:     root,
 		Selector:     selector,
@@ -25,6 +34,7 @@ func NewSearchEngine(root *models.Node, selector, algo string, count int) *Searc
 		NodesVisited: 0,
 		Log:          make([]string, 0),
 		Matches:      make([]*models.Node, 0),
+		sem:          make(chan struct{}, limit),
 	}
 }
 
@@ -37,31 +47,61 @@ func (se *SearchEngine) Execute() {
 	}
 }
 
+func (se *SearchEngine) recordVisit(node *models.Node, matched bool) bool {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+
+	se.NodesVisited++
+	se.Log = append(se.Log, node.TagName)
+
+	if matched {
+		se.Matches = append(se.Matches, node)
+		if se.ResultCount > 0 && len(se.Matches) >= se.ResultCount {
+			se.done.Store(true)
+			return true
+		}
+	}
+	return false
+}
+
 func (se *SearchEngine) runBFS() {
 	if se.RootNode == nil {
 		return
 	}
 
-	queue := []*models.Node{se.RootNode}
+	currentLevel := []*models.Node{se.RootNode}
 
-	for len(queue) > 0 {
-		curr := queue[0]
-		queue = queue[1:]
+	for len(currentLevel) > 0 && !se.done.Load() {
+		var wg sync.WaitGroup
+		nextLevel := make([][]*models.Node, len(currentLevel))
 
-		se.NodesVisited++
-		se.Log = append(se.Log, curr.TagName)
+		for i, node := range currentLevel {
+			wg.Add(1)
+			se.sem <- struct{}{} // mengambil slot worker
+			go func(idx int, n *models.Node) {
+				defer wg.Done()
+				defer func() { <-se.sem }() // melepaskan slot worker
 
-		if se.isMatch(curr, se.Selector) {
-			se.Matches = append(se.Matches, curr)
+				if se.done.Load() {
+					return
+				}
+
+				matched := se.isMatch(n, se.Selector)
+				se.recordVisit(n, matched)
+				nextLevel[idx] = n.Children
+			}(i, node)
 		}
 
-		if se.ResultCount > 0 && len(se.Matches) >= se.ResultCount {
-			break
+		wg.Wait()
+		total := 0
+		for _, cs := range nextLevel {
+			total += len(cs)
 		}
-
-		for _, child := range curr.Children {
-			queue = append(queue, child)
+		next := make([]*models.Node, 0, total)
+		for _, cs := range nextLevel {
+			next = append(next, cs...)
 		}
+		currentLevel = next
 	}
 }
 
@@ -69,27 +109,38 @@ func (se *SearchEngine) runDFS() {
 	if se.RootNode == nil {
 		return
 	}
-	se.dfsRecursive(se.RootNode)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	se.dfsWorker(se.RootNode, &wg)
+	wg.Wait()
 }
 
-func (se *SearchEngine) dfsRecursive(node *models.Node) {
-	if node == nil {
+func (se *SearchEngine) dfsWorker(node *models.Node, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	if node == nil || se.done.Load() {
 		return
 	}
 
-	if se.ResultCount > 0 && len(se.Matches) >= se.ResultCount {
+	matched := se.isMatch(node, se.Selector)
+	if se.recordVisit(node, matched) {
 		return
-	}
-
-	se.NodesVisited++
-	se.Log = append(se.Log, node.TagName)
-
-	if se.isMatch(node, se.Selector) {
-		se.Matches = append(se.Matches, node)
 	}
 
 	for _, child := range node.Children {
-		se.dfsRecursive(child)
+		if se.done.Load() {
+			return
+		}
+		wg.Add(1)
+		select {
+		case se.sem <- struct{}{}:
+			go func(c *models.Node) {
+				defer func() { <-se.sem }()
+				se.dfsWorker(c, wg)
+			}(child)
+		default:
+			se.dfsWorker(child, wg)
+		}
 	}
 }
 
@@ -224,7 +275,7 @@ func (se *SearchEngine) matchSingle(node *models.Node, selector string) bool {
 	id := ""
 	classes := make([]string, 0)
 
-	// Ambil tag di awal jika ada.
+	// Ambil tag di awal jika ada
 	if remaining[0] != '#' && remaining[0] != '.' {
 		idx := strings.IndexAny(remaining, "#.")
 		if idx == -1 {
