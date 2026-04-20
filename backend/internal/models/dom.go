@@ -23,6 +23,7 @@ type TraversalRequest struct {
 type TraversalResponse struct {
 	ExecutionTimeMs float64  `json:"execution_time_ms"`
 	NodesVisited    int      `json:"nodes_visited"`
+	NodesFound      int      `json:"nodes_found"`
 	MatchedNodes    []*Node  `json:"matched_nodes"`
 	TraversalLog    []string `json:"traversal_log"`
 	FullTree        *Node    `json:"full_tree"`

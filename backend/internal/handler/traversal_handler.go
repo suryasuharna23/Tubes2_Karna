@@ -64,6 +64,7 @@ func HandleTraversal(w http.ResponseWriter, r *http.Request) {
 	resp := models.TraversalResponse{
 		ExecutionTimeMs: executionTime,
 		NodesVisited:    engine.NodesVisited,
+		NodesFound:      len(engine.Matches),
 		MatchedNodes:    engine.Matches,
 		TraversalLog:    engine.Log,
 		FullTree:        domTree,
