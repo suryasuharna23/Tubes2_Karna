@@ -1,6 +1,7 @@
 export interface DOMNode {
   tag_name: string;
   id?: string;
+  class?: string;
   classes?: string | string[];
   attributes?: Record<string, string>;
   text_content?: string;
@@ -18,6 +19,7 @@ export interface TraversalRequest {
 export interface TraversalResponse {
   execution_time_ms: number;
   nodes_visited: number;
+  nodes_found?: number;
   matched_nodes: DOMNode[];
   traversal_log: string[];
   full_tree?: DOMNode;
