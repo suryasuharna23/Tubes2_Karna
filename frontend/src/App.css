@@ -289,6 +289,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 0 20px;
 }
 
@@ -316,11 +317,82 @@
   transform: translateY(3px);
 }
 
+.results-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b2a2a;
+  border: 1px solid rgba(66, 72, 74, 0.3);
+  border-radius: 4px;
+  padding: 3px;
+}
+
+.results-view-toggle__btn {
+  border: none;
+  background: transparent;
+  color: #c2c7ca;
+  font: 400 11px/1.4 'JetBrains Mono', monospace;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.results-view-toggle__btn--active {
+  background: rgba(239, 188, 148, 0.18);
+  color: #efbc94;
+}
+
 .results-panel__canvas {
   flex: 1;
   background: #0f0e0e;
   padding: 20px;
   overflow: auto;
+}
+
+.dom-tree {
+  min-width: max-content;
+}
+
+.dom-tree-node {
+  margin-top: 6px;
+}
+
+.dom-tree-node__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  border: 1px solid rgba(66, 72, 74, 0.3);
+  background: #201f1f;
+  color: #e6e1e1;
+  border-radius: 2px;
+  padding: 7px 12px;
+  font: 400 12px/1.35 'JetBrains Mono', monospace;
+}
+
+.dom-tree-node__label--matched {
+  border: 2px solid #efbc94;
+  background: rgba(239, 188, 148, 0.08);
+  box-shadow: 0 0 15px rgba(239, 188, 148, 0.2);
+}
+
+.dom-tree-node__tag {
+  color: #e6e1e1;
+}
+
+.dom-tree-node__label--matched .dom-tree-node__tag {
+  color: #efbc94;
+  font-weight: 500;
+}
+
+.dom-tree-node__text {
+  color: #c2c7ca;
+}
+
+.dom-tree-node__children {
+  margin-left: 16px;
+  margin-top: 8px;
+  padding-left: 13px;
+  border-left: 1px solid rgba(66, 72, 74, 0.5);
 }
 
 .path-tree {
@@ -344,6 +416,12 @@
   border-radius: 2px;
   padding: 8px 16px;
   font: 400 12px/1.35 'JetBrains Mono', monospace;
+}
+
+.path-node--match {
+  border-color: #efbc94;
+  background: rgba(239, 188, 148, 0.08);
+  box-shadow: 0 0 12px rgba(239, 188, 148, 0.18);
 }
 
 .path-node--target {
@@ -440,6 +518,13 @@
   .top-grid,
   .bottom-grid {
     grid-template-columns: 1fr;
+  }
+
+  .results-panel__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
   .results-panel__status {

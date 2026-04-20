@@ -5,6 +5,7 @@ import { traverseDOM } from './services/api';
 import './App.css';
 
 type InputMode = 'url' | 'html';
+type ResultsViewMode = 'full' | 'traversal';
 
 const normalizeClasses = (node?: DOMNode): string => {
   const classes = node?.classes ?? node?.class;
@@ -16,11 +17,13 @@ const normalizeClasses = (node?: DOMNode): string => {
   return Array.isArray(classes) ? classes.join(' ') : classes;
 };
 
-const isSameNode = (first: DOMNode, second: DOMNode): boolean => {
-  return first.tag_name === second.tag_name
-    && (first.id ?? '') === (second.id ?? '')
-    && normalizeClasses(first) === normalizeClasses(second)
-    && (first.text_content ?? '') === (second.text_content ?? '');
+const getNodeSignature = (node: DOMNode): string => {
+  return [
+    node.tag_name,
+    node.id ?? '',
+    normalizeClasses(node),
+    node.text_content ?? '',
+  ].join('|');
 };
 
 const getNodeLabel = (node: DOMNode): string => {
@@ -34,21 +37,43 @@ const getNodeLabel = (node: DOMNode): string => {
   return `${node.tag_name}${identifier}${classes}`;
 };
 
-const findPathToTarget = (node: DOMNode, target: DOMNode, path: DOMNode[] = []): DOMNode[] | null => {
-  const nextPath = [...path, node];
-
-  if (isSameNode(node, target)) {
-    return nextPath;
+const calculateMaxDepth = (node?: DOMNode): number => {
+  if (!node) {
+    return 0;
   }
 
-  for (const child of node.children ?? []) {
-    const childPath = findPathToTarget(child, target, nextPath);
-    if (childPath) {
-      return childPath;
-    }
+  if (!node.children || node.children.length === 0) {
+    return 0;
   }
 
-  return null;
+  return 1 + Math.max(...node.children.map(calculateMaxDepth));
+};
+
+type TreeNodeProps = {
+  node: DOMNode;
+  matchedSignatures: Set<string>;
+};
+
+const TreeNode: React.FC<TreeNodeProps> = ({ node, matchedSignatures }) => {
+  const isMatched = matchedSignatures.has(getNodeSignature(node));
+  const nodeText = node.text_content?.trim();
+
+  return (
+    <div className="dom-tree-node">
+      <div className={isMatched ? 'dom-tree-node__label dom-tree-node__label--matched' : 'dom-tree-node__label'}>
+        <span className="dom-tree-node__tag">{getNodeLabel(node)}</span>
+        {nodeText && <span className="dom-tree-node__text">"{nodeText}"</span>}
+      </div>
+
+      {node.children?.length > 0 && (
+        <div className="dom-tree-node__children">
+          {node.children.map((child, index) => (
+            <TreeNode key={`${getNodeSignature(child)}-${index}`} node={child} matchedSignatures={matchedSignatures} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 function App() {
@@ -62,6 +87,7 @@ function App() {
   const [selector, setSelector] = useState('');
   const [algorithm, setAlgorithm] = useState<'BFS' | 'DFS'>('DFS');
   const [resultCount, setResultCount] = useState<number>(0);
+  const [resultsViewMode, setResultsViewMode] = useState<ResultsViewMode>('full');
 
   const matchedCount = useMemo(() => {
     if (!response) {
@@ -81,29 +107,27 @@ function App() {
     return matchedNodesCount;
   }, [response]);
 
-  const focusPathLabels = useMemo(() => {
-    const defaultLabels = ['HTMLDocument', 'html', 'body', 'div.product-card', 'h2.title'];
+  const matchedSignatures = useMemo(() => {
+    const signatures = new Set<string>();
 
-    if (!response?.full_tree || !response?.matched_nodes?.[0]) {
-      return defaultLabels;
+    for (const node of response?.matched_nodes ?? []) {
+      signatures.add(getNodeSignature(node));
     }
 
-    const path = findPathToTarget(response.full_tree, response.matched_nodes[0]);
-    if (!path) {
-      return defaultLabels;
-    }
-
-    return ['HTMLDocument', ...path.map(getNodeLabel)];
+    return signatures;
   }, [response]);
 
-  const focusTargetText = useMemo(() => {
-    const text = response?.matched_nodes?.[0]?.text_content?.trim();
-    if (!text) {
-      return '"Mechanical Keyboard v2"';
+  const matchedTagNames = useMemo(() => {
+    const tags = new Set<string>();
+
+    for (const node of response?.matched_nodes ?? []) {
+      tags.add(node.tag_name);
     }
 
-    return `"${text}"`;
+    return tags;
   }, [response]);
+
+  const maximumDepth = useMemo(() => calculateMaxDepth(response?.full_tree), [response]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +150,7 @@ function App() {
     setLoading(true);
     setError(null);
     setResponse(null);
+    setResultsViewMode('full');
 
     const request: TraversalRequest = {
       url: inputMode === 'url' ? url : '',
@@ -269,7 +294,7 @@ function App() {
               </div>
               <div className="metric-item">
                 <p className="metric-item__label">MAXIMUM DEPTH</p>
-                <p className="metric-item__value">{Math.max(focusPathLabels.length - 2, 0)}</p>
+                <p className="metric-item__value">{maximumDepth}</p>
               </div>
             </div>
           </section>
@@ -305,31 +330,54 @@ function App() {
               <span className="results-panel__count">{matchedCount}</span>
               <span className="results-panel__meta">NODES CAPTURED</span>
             </div>
+            <div className="results-view-toggle">
+              <button
+                type="button"
+                className={resultsViewMode === 'full' ? 'results-view-toggle__btn results-view-toggle__btn--active' : 'results-view-toggle__btn'}
+                onClick={() => setResultsViewMode('full')}
+              >
+                Full Tree
+              </button>
+              <button
+                type="button"
+                className={resultsViewMode === 'traversal' ? 'results-view-toggle__btn results-view-toggle__btn--active' : 'results-view-toggle__btn'}
+                onClick={() => setResultsViewMode('traversal')}
+              >
+                Traversal Tree
+              </button>
+            </div>
           </header>
 
           <div className="results-panel__canvas">
-            <div className="path-tree">
-              {focusPathLabels.map((label, index) => {
-                const isLast = index === focusPathLabels.length - 1;
+            {resultsViewMode === 'full' ? (
+              <div className="dom-tree">
+                {response?.full_tree ? (
+                  <TreeNode node={response.full_tree} matchedSignatures={matchedSignatures} />
+                ) : (
+                  <p className="log-empty">Run traversal to generate and visualize the full DOM tree.</p>
+                )}
+              </div>
+            ) : (
+              <div className="path-tree">
+                {response?.traversal_log?.length ? (
+                  response.traversal_log.map((tag, index) => {
+                    const isLast = index === response.traversal_log.length - 1;
+                    const isMatchedTag = matchedTagNames.has(tag);
 
-                return (
-                  <React.Fragment key={`${label}-${index}`}>
-                    <div className={isLast ? 'path-node path-node--target' : 'path-node'}>
-                      {isLast ? (
-                        <>
-                          <span className="path-node__dot" />
-                          <span className="path-node__label">{label}</span>
-                          <span className="path-node__text">{focusTargetText}</span>
-                        </>
-                      ) : (
-                        <span className="path-node__label">{label}</span>
-                      )}
-                    </div>
-                    {!isLast && <span className="path-tree__connector" />}
-                  </React.Fragment>
-                );
-              })}
-            </div>
+                    return (
+                      <React.Fragment key={`${tag}-${index}`}>
+                        <div className={isMatchedTag ? 'path-node path-node--match' : 'path-node'}>
+                          <span className="path-node__label">{tag}</span>
+                        </div>
+                        {!isLast && <span className="path-tree__connector" />}
+                      </React.Fragment>
+                    );
+                  })
+                ) : (
+                  <p className="log-empty">Run traversal to generate and visualize traversal order.</p>
+                )}
+              </div>
+            )}
           </div>
 
           <footer className="results-panel__status">
