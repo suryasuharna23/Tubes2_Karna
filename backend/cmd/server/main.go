@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"tubes2-backend/internal/handler"
 	"tubes2-backend/internal/models"
 	"tubes2-backend/internal/parser"
 	"tubes2-backend/internal/traversal"
@@ -77,6 +78,7 @@ func handleTraversal(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/api/traverse", handleTraversal)
+	http.HandleFunc("/api/lca", handler.HandleLCA)
 
 	port := ":8080"
 	fmt.Printf("Backend server berjalan di port %s...\n", port)
