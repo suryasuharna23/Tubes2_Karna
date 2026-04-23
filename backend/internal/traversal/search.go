@@ -144,6 +144,29 @@ func (se *SearchEngine) dfsWorker(node *models.Node, wg *sync.WaitGroup) {
 	}
 }
 
+// FindFirstMatch (fitur LCA)
+func FindFirstMatch(root *models.Node, selector string) *models.Node {
+	if root == nil || strings.TrimSpace(selector) == "" {
+		return nil
+	}
+	se := &SearchEngine{Selector: selector}
+	stack := []*models.Node{root}
+	for len(stack) > 0 {
+		n := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if n == nil {
+			continue
+		}
+		if se.isMatch(n, selector) {
+			return n
+		}
+		for i := len(n.Children) - 1; i >= 0; i-- {
+			stack = append(stack, n.Children[i])
+		}
+	}
+	return nil
+}
+
 func parseSelector(sel string) []string {
 	sel = strings.TrimSpace(sel)
 	if sel == "" {
