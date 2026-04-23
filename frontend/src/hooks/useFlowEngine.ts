@@ -7,7 +7,8 @@ export function useFlowEngine(
   baseNodes: Node[],
   baseEdges: Edge[],
   algorithm: 'BFS' | 'DFS',
-  resultCount: number
+  resultCount: number,
+  playbackEnabled: boolean = true
 ) {
   const [animatedNodes, setAnimatedNodes] = useState<Node[]>([]);
   const [hoveredFlowNodeId, setHoveredFlowNodeId] = useState<string | null>(null);
@@ -23,7 +24,6 @@ export function useFlowEngine(
   const currentPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const prevRevealIdsRef = useRef<Set<string>>(new Set());
 
-  // 1. Determine the order nodes should be revealed based on the algorithm
   const revealNodeOrder = useMemo(() => {
     const withIndex = baseNodes.map((node, index) => ({ node, index }));
     if (algorithm === 'BFS') {
@@ -75,10 +75,16 @@ export function useFlowEngine(
       setIsPlaybackActive(false);
       return;
     }
+    if (!playbackEnabled) {
+      setRevealCursor(baseNodes.length);
+      setIsPlaybackActive(false);
+      setHoveredFlowNodeId(null);
+      return;
+    }
     setRevealCursor(1);
     setIsPlaybackActive(baseNodes.length > 1);
     setHoveredFlowNodeId(null);
-  }, [baseNodes.length]);
+  }, [baseNodes.length, playbackEnabled]);
 
   useEffect(() => {
     if (revealNodeOrder.length === 0) {
@@ -193,7 +199,7 @@ export function useFlowEngine(
   useEffect(() => {
     stopPlaybackTimer();
 
-    if (!isPlaybackActive || playbackCompleted || reachedResultLimit || revealNodeOrder.length === 0) {
+    if (!playbackEnabled || !isPlaybackActive || playbackCompleted || reachedResultLimit || revealNodeOrder.length === 0) {
       if (isPlaybackActive && reachedResultLimit) setIsPlaybackActive(false);
       return;
     }
@@ -212,7 +218,7 @@ export function useFlowEngine(
     }, stepDelay);
 
     return () => stopPlaybackTimer();
-  }, [isPlaybackActive, playbackCompleted, reachedResultLimit, revealCursor, revealNodeOrder.length, playbackSpeed, stopPlaybackTimer]);
+  }, [isPlaybackActive, playbackCompleted, reachedResultLimit, revealCursor, revealNodeOrder.length, playbackSpeed, stopPlaybackTimer, playbackEnabled]);
 
   const highlightedEdgeIds = useMemo(() => {
     if (!hoveredFlowNodeId) return new Set<string>();
@@ -259,7 +265,6 @@ export function useFlowEngine(
     };
   }), [visibleFlowEdges, highlightedEdgeIds]);
 
-  // 6. Fit View logic
   useEffect(() => {
     if (!flowInstance || visibleFlowNodes.length === 0) return;
     const timeout = window.setTimeout(() => {

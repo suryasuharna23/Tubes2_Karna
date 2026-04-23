@@ -72,9 +72,11 @@ export const getSiblingOrder = (nodeId: string): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+export type NodeHighlightRole = 'matched' | 'node-a' | 'node-b' | 'lca';
+
 export const buildFlowTree = (
   root: DOMNode,
-  matchedSignatures: Set<string>,
+  highlightMap: Map<string, NodeHighlightRole>,
 ): { nodes: Node[]; edges: Edge[]; truncated: boolean; renderedNodes: number } => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -91,17 +93,21 @@ export const buildFlowTree = (
     rowByDepth.set(depth, row + 1);
 
     const nodeId = `${depth}-${path}`;
-    const isMatched = matchedSignatures.has(getNodeSignature(node));
+    const role = highlightMap.get(getNodeSignature(node));
     const previewText = getNodePreviewText(node);
     const baseLabel = previewText ? `${getNodeLabel(node)} — "${previewText}"` : getNodeLabel(node);
     const nodeLabel = baseLabel;
+
+    const className = role
+      ? `flow-node flow-node--${role}${role === 'matched' ? '' : ' flow-node--highlighted'}`
+      : 'flow-node';
 
     nodes.push({
       id: nodeId,
       position: { x: row * INITIAL_ROW_GAP, y: depth * INITIAL_DEPTH_GAP },
       draggable: false,
       selectable: false,
-      className: isMatched ? 'flow-node flow-node--matched' : 'flow-node',
+      className,
       data: { label: nodeLabel },
       style: { width: estimateFlowNodeWidth(nodeLabel) },
       sourcePosition: Position.Bottom,
