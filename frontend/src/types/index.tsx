@@ -24,3 +24,18 @@ export interface TraversalResponse {
   traversal_log: string[];
   full_tree?: DOMNode;
 }
+
+export interface LCARequest {
+  url: string;
+  raw_html?: string;
+  selector_a: string;
+  selector_b: string;
+}
+
+export interface LCAResponse {
+  execution_time_ms: number;
+  node_a: DOMNode | null;
+  node_b: DOMNode | null;
+  lca: DOMNode | null;
+  full_tree: DOMNode;
+}
