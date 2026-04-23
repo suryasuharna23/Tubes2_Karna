@@ -472,6 +472,84 @@
   animation: flowNodeMatchPulse 1.35s ease-in-out infinite;
 }
 
+.flow-tree-wrapper .react-flow__node.flow-node--node-a {
+  border: 2px solid #6aa9ff;
+  background: rgba(106, 169, 255, 0.18);
+  color: #eaf3ff;
+  box-shadow: 0 0 0 1px rgba(106, 169, 255, 0.5), 0 0 22px rgba(106, 169, 255, 0.45);
+}
+
+.flow-tree-wrapper .react-flow__node.flow-node--node-b {
+  border: 2px solid #7ee28b;
+  background: rgba(126, 226, 139, 0.18);
+  color: #effff2;
+  box-shadow: 0 0 0 1px rgba(126, 226, 139, 0.5), 0 0 22px rgba(126, 226, 139, 0.45);
+}
+
+.flow-tree-wrapper .react-flow__node.flow-node--lca {
+  border: 2px solid #ffd166;
+  background: rgba(255, 209, 102, 0.22);
+  color: #fff6de;
+  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.55), 0 0 28px rgba(255, 209, 102, 0.55);
+  animation: flowNodeLcaPulse 1.35s ease-in-out infinite;
+}
+
+.metric-item__value--small {
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  word-break: break-all;
+}
+
+.metric-item--full {
+  grid-column: 1 / -1;
+}
+
+.metrics-grid--lca {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.traversal-form__grid--lca {
+  grid-template-columns: 1fr 1fr;
+}
+
+.lca-legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lca-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #c2c7ca;
+  font: 400 12px/1.35 'JetBrains Mono', monospace;
+}
+
+.lca-legend__chip {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex: 0 0 auto;
+}
+
+.lca-legend__chip--node-a {
+  background: #6aa9ff;
+}
+
+.lca-legend__chip--node-b {
+  background: #7ee28b;
+}
+
+.lca-legend__chip--lca {
+  background: #ffd166;
+}
+
 @keyframes flowEdgeDash {
   to {
     stroke-dashoffset: -24;
@@ -498,6 +576,17 @@
 
   50% {
     box-shadow: 0 0 0 2px rgba(255, 215, 182, 0.82), 0 0 34px rgba(239, 188, 148, 0.62);
+  }
+}
+
+@keyframes flowNodeLcaPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.55), 0 0 24px rgba(255, 209, 102, 0.55);
+  }
+
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 224, 146, 0.9), 0 0 36px rgba(255, 209, 102, 0.75);
   }
 }
 
