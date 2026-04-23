@@ -6,11 +6,11 @@ type Node struct {
 	Classes     string            `json:"class,omitempty"`
 	Attributes  map[string]string `json:"attributes,omitempty"`
 	TextContent string            `json:"text_content,omitempty"`
-	Children    []*Node           `json:"children,omitempty"` // children nodes from the DOM tree
+	Children    []*Node           `json:"children,omitempty"` 
 	Parent      *Node             `json:"-"`
 }
 
-// Input from the frontend for DOM traversal
+// payload input (fitur pencarian elemen)
 type TraversalRequest struct {
 	URL         string `json:"url"`
 	RawHTML     string `json:"raw_html"`
@@ -19,7 +19,7 @@ type TraversalRequest struct {
 	ResultCount int    `json:"result_count"`
 }
 
-// Output to the frontend after DOM traversal
+// format data Output (metrik pencarian dan hasil traverse)
 type TraversalResponse struct {
 	ExecutionTimeMs float64  `json:"execution_time_ms"`
 	NodesVisited    int      `json:"nodes_visited"`
@@ -27,4 +27,21 @@ type TraversalResponse struct {
 	MatchedNodes    []*Node  `json:"matched_nodes"`
 	TraversalLog    []string `json:"traversal_log"`
 	FullTree        *Node    `json:"full_tree"`
+}
+
+// payload input (fitur pencarian Lowest Common Ancestor)
+type LCARequest struct {
+	URL       string `json:"url"`
+	RawHTML   string `json:"raw_html"`
+	SelectorA string `json:"selector_a"`
+	SelectorB string `json:"selector_b"`
+}
+
+// format data Output (hasil perhitungan LCA)
+type LCAResponse struct {
+	ExecutionTimeMs float64 `json:"execution_time_ms"`
+	NodeA           *Node   `json:"node_a"`
+	NodeB           *Node   `json:"node_b"`
+	LCA             *Node   `json:"lca"`
+	FullTree        *Node   `json:"full_tree"`
 }
