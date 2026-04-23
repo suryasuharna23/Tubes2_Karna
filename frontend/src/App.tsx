@@ -1,80 +1,23 @@
-// src/App.tsx
 import React, { useMemo, useState } from 'react';
-import type { TraversalRequest, TraversalResponse, DOMNode } from './types';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  Controls,
+  MiniMap,
+} from '@xyflow/react';
+import type { TraversalRequest, TraversalResponse } from './types';
 import { traverseDOM } from './services/api';
+
+// Extracted Hooks & Utils
+import { useFlowEngine } from './hooks/useFlowEngine';
+import { calculateMaxDepth, buildFlowTree, getNodeSignature } from './utils/flowUtils';
+import { PLAYBACK_SPEED_OPTIONS, type PlaybackSpeed } from './constants/flow';
+
+import '@xyflow/react/dist/style.css';
 import './App.css';
 
 type InputMode = 'url' | 'html';
-type ResultsViewMode = 'full' | 'traversal';
-
-const normalizeClasses = (node?: DOMNode): string => {
-  const classes = node?.classes ?? node?.class;
-
-  if (!classes) {
-    return '';
-  }
-
-  return Array.isArray(classes) ? classes.join(' ') : classes;
-};
-
-const getNodeSignature = (node: DOMNode): string => {
-  return [
-    node.tag_name,
-    node.id ?? '',
-    normalizeClasses(node),
-    node.text_content ?? '',
-  ].join('|');
-};
-
-const getNodeLabel = (node: DOMNode): string => {
-  const classes = normalizeClasses(node)
-    .split(' ')
-    .filter(Boolean)
-    .map((className) => `.${className}`)
-    .join('');
-
-  const identifier = node.id ? `#${node.id}` : '';
-  return `${node.tag_name}${identifier}${classes}`;
-};
-
-const calculateMaxDepth = (node?: DOMNode): number => {
-  if (!node) {
-    return 0;
-  }
-
-  if (!node.children || node.children.length === 0) {
-    return 0;
-  }
-
-  return 1 + Math.max(...node.children.map(calculateMaxDepth));
-};
-
-type TreeNodeProps = {
-  node: DOMNode;
-  matchedSignatures: Set<string>;
-};
-
-const TreeNode: React.FC<TreeNodeProps> = ({ node, matchedSignatures }) => {
-  const isMatched = matchedSignatures.has(getNodeSignature(node));
-  const nodeText = node.text_content?.trim();
-
-  return (
-    <div className="dom-tree-node">
-      <div className={isMatched ? 'dom-tree-node__label dom-tree-node__label--matched' : 'dom-tree-node__label'}>
-        <span className="dom-tree-node__tag">{getNodeLabel(node)}</span>
-        {nodeText && <span className="dom-tree-node__text">"{nodeText}"</span>}
-      </div>
-
-      {node.children?.length > 0 && (
-        <div className="dom-tree-node__children">
-          {node.children.map((child, index) => (
-            <TreeNode key={`${getNodeSignature(child)}-${index}`} node={child} matchedSignatures={matchedSignatures} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 function App() {
   const [response, setResponse] = useState<TraversalResponse | null>(null);
@@ -87,47 +30,57 @@ function App() {
   const [selector, setSelector] = useState('');
   const [algorithm, setAlgorithm] = useState<'BFS' | 'DFS'>('DFS');
   const [resultCount, setResultCount] = useState<number>(0);
-  const [resultsViewMode, setResultsViewMode] = useState<ResultsViewMode>('full');
 
   const matchedCount = useMemo(() => {
-    if (!response) {
-      return 0;
-    }
-
+    if (!response) return 0;
     const matchedNodesCount = response.matched_nodes?.length ?? 0;
-
-    if (typeof response.nodes_found === 'number') {
-      if (response.nodes_found > 0) {
-        return response.nodes_found;
-      }
-
-      return matchedNodesCount;
-    }
-
-    return matchedNodesCount;
+    return (typeof response.nodes_found === 'number' && response.nodes_found > 0) 
+      ? response.nodes_found 
+      : matchedNodesCount;
   }, [response]);
 
   const matchedSignatures = useMemo(() => {
     const signatures = new Set<string>();
-
     for (const node of response?.matched_nodes ?? []) {
       signatures.add(getNodeSignature(node));
     }
-
     return signatures;
   }, [response]);
 
-  const matchedTagNames = useMemo(() => {
-    const tags = new Set<string>();
-
-    for (const node of response?.matched_nodes ?? []) {
-      tags.add(node.tag_name);
-    }
-
-    return tags;
-  }, [response]);
-
   const maximumDepth = useMemo(() => calculateMaxDepth(response?.full_tree), [response]);
+
+  const { baseNodes, baseEdges, truncated, renderedNodes } = useMemo(() => {
+    if (!response?.full_tree) {
+      return { baseNodes: [], baseEdges: [], truncated: false, renderedNodes: 0 };
+    }
+    
+    const tree = buildFlowTree(response.full_tree, matchedSignatures);
+    
+    return { 
+      baseNodes: tree.nodes, 
+      baseEdges: tree.edges, 
+      truncated: tree.truncated, 
+      renderedNodes: tree.renderedNodes 
+    };
+  }, [response, matchedSignatures]);
+
+  const {
+    visibleFlowNodes,
+    animatedFlowEdges,
+    setFlowInstance,
+    setHoveredFlowNodeId,
+    isPlaybackActive,
+    playbackCompleted,
+    reachedResultLimit,
+    playbackSpeed,
+    setPlaybackSpeed,
+    revealedMatchedCount,
+    handleTogglePlayback,
+    handleRestartPlayback,
+  } = useFlowEngine(baseNodes, baseEdges, algorithm, resultCount);
+
+  const isLargeFlow = renderedNodes > 500;
+  const visibleFlowNodeCount = visibleFlowNodes.length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,12 +89,10 @@ function App() {
       setError('Masukkan URL target terlebih dahulu.');
       return;
     }
-
     if (inputMode === 'html' && !rawHtml.trim()) {
       setError('Masukkan raw HTML terlebih dahulu.');
       return;
     }
-
     if (!selector.trim()) {
       setError('CSS selector wajib diisi.');
       return;
@@ -150,7 +101,6 @@ function App() {
     setLoading(true);
     setError(null);
     setResponse(null);
-    setResultsViewMode('full');
 
     const request: TraversalRequest = {
       url: inputMode === 'url' ? url : '',
@@ -208,7 +158,7 @@ function App() {
                 id="url"
                 type="text"
                 value={url}
-                onChange={(event) => setUrl(event.target.value)}
+                onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com/data"
               />
               <p className="form-note">Note: Dont forget to include the protocol in the url</p>
@@ -219,7 +169,7 @@ function App() {
               <textarea
                 id="rawHtml"
                 value={rawHtml}
-                onChange={(event) => setRawHtml(event.target.value)}
+                onChange={(e) => setRawHtml(e.target.value)}
                 placeholder={'<div class="product-card"><h2 class="title">...</h2></div>'}
               />
             </div>
@@ -237,7 +187,7 @@ function App() {
                   type="text"
                   required
                   value={selector}
-                  onChange={(event) => setSelector(event.target.value)}
+                  onChange={(e) => setSelector(e.target.value)}
                   placeholder="div.product-card > h2.title"
                 />
               </div>
@@ -247,7 +197,7 @@ function App() {
                 <select
                   id="algorithm"
                   value={algorithm}
-                  onChange={(event) => setAlgorithm(event.target.value as 'BFS' | 'DFS')}
+                  onChange={(e) => setAlgorithm(e.target.value as 'BFS' | 'DFS')}
                 >
                   <option value="DFS">Depth-First (DFS)</option>
                   <option value="BFS">Breadth-First (BFS)</option>
@@ -261,7 +211,7 @@ function App() {
                   type="number"
                   min="0"
                   value={resultCount}
-                  onChange={(event) => setResultCount(Number(event.target.value))}
+                  onChange={(e) => setResultCount(Number(e.target.value))}
                 />
               </div>
             </div>
@@ -330,66 +280,100 @@ function App() {
               <span className="results-panel__count">{matchedCount}</span>
               <span className="results-panel__meta">NODES CAPTURED</span>
             </div>
-            <div className="results-view-toggle">
-              <button
-                type="button"
-                className={resultsViewMode === 'full' ? 'results-view-toggle__btn results-view-toggle__btn--active' : 'results-view-toggle__btn'}
-                onClick={() => setResultsViewMode('full')}
-              >
-                Full Tree
-              </button>
-              <button
-                type="button"
-                className={resultsViewMode === 'traversal' ? 'results-view-toggle__btn results-view-toggle__btn--active' : 'results-view-toggle__btn'}
-                onClick={() => setResultsViewMode('traversal')}
-              >
-                Traversal Tree
-              </button>
-            </div>
           </header>
 
           <div className="results-panel__canvas">
-            {resultsViewMode === 'full' ? (
-              <div className="dom-tree">
-                {response?.full_tree ? (
-                  <TreeNode node={response.full_tree} matchedSignatures={matchedSignatures} />
-                ) : (
-                  <p className="log-empty">Run traversal to generate and visualize the full DOM tree.</p>
+            {baseNodes.length > 0 ? (
+              <div className="flow-tree-wrapper">
+                <div className="flow-tree-hint">
+                  Rendered: {visibleFlowNodeCount}/{renderedNodes} nodes
+                  {resultCount > 0 && ` · Matches ${revealedMatchedCount}/${resultCount}`}
+                </div>
+                <div className="flow-playback-controls">
+                  <button type="button" className="flow-playback-controls__btn" onClick={handleTogglePlayback}>
+                    {playbackCompleted || reachedResultLimit ? 'Replay' : isPlaybackActive ? 'Pause' : 'Play'}
+                  </button>
+                  <button type="button" className="flow-playback-controls__btn" onClick={handleRestartPlayback}>
+                    Restart
+                  </button>
+                  <label htmlFor="playbackSpeed" className="flow-playback-controls__label">
+                    Speed
+                  </label>
+                  <select
+                    id="playbackSpeed"
+                    value={playbackSpeed}
+                    onChange={(e) => setPlaybackSpeed(Number(e.target.value) as PlaybackSpeed)}
+                    className="flow-playback-controls__select"
+                  >
+                    {PLAYBACK_SPEED_OPTIONS.map((speed) => (
+                      <option key={speed} value={speed}>
+                        {speed}x
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {truncated && (
+                  <p className="results-warning">
+                    Showing first {renderedNodes} nodes for performance. Use a smaller HTML or narrower selector for full detail.
+                  </p>
                 )}
+                <ReactFlowProvider>
+                  <ReactFlow
+                    nodes={visibleFlowNodes}
+                    edges={animatedFlowEdges}
+                    style={{ width: '100%', height: '100%' }}
+                    fitView
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={false}
+                    panOnDrag
+                    zoomOnScroll
+                    fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
+                    minZoom={0.05}
+                    maxZoom={2}
+                    onInit={setFlowInstance}
+                    onNodeMouseEnter={(_, node) => setHoveredFlowNodeId(node.id)}
+                    onNodeMouseLeave={() => setHoveredFlowNodeId(null)}
+                    proOptions={{ hideAttribution: true }}
+                  >
+                    <Background color="rgba(239, 188, 148, 0.22)" gap={20} />
+                    {!isLargeFlow && (
+                      <MiniMap
+                        pannable
+                        zoomable
+                        maskColor="rgba(15, 14, 14, 0.55)"
+                        nodeColor={(node) => (node.className?.includes('flow-node--matched') ? '#efbc94' : '#6b7280')}
+                      />
+                    )}
+                    <Controls showInteractive={false} />
+                  </ReactFlow>
+                </ReactFlowProvider>
               </div>
             ) : (
-              <div className="path-tree">
-                {response?.traversal_log?.length ? (
-                  response.traversal_log.map((tag, index) => {
-                    const isLast = index === response.traversal_log.length - 1;
-                    const isMatchedTag = matchedTagNames.has(tag);
-
-                    return (
-                      <React.Fragment key={`${tag}-${index}`}>
-                        <div className={isMatchedTag ? 'path-node path-node--match' : 'path-node'}>
-                          <span className="path-node__label">{tag}</span>
-                        </div>
-                        {!isLast && <span className="path-tree__connector" />}
-                      </React.Fragment>
-                    );
-                  })
-                ) : (
-                  <p className="log-empty">Run traversal to generate and visualize traversal order.</p>
-                )}
-              </div>
+              <p className="log-empty">Run traversal to generate and visualize the full DOM tree.</p>
             )}
           </div>
 
           <footer className="results-panel__status">
             <span>EXECUTION TIME: {response?.execution_time_ms ?? 0}MS</span>
             <span>CHARSET: UTF-8</span>
-            <span className="status-ok">TRAVERSAL {response ? 'COMPLETE' : 'IDLE'}</span>
+            <span className="status-ok">
+              TRAVERSAL{' '}
+              {response
+                ? !playbackCompleted && !reachedResultLimit
+                  ? isPlaybackActive
+                    ? 'ANIMATING'
+                    : 'PAUSED'
+                  : reachedResultLimit
+                    ? 'LIMIT REACHED'
+                  : 'COMPLETE'
+                : 'IDLE'}
+            </span>
           </footer>
         </section>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
-      
       <div className="sr-only" aria-hidden="true">DOM Traversal & CSS Selector Engine</div>
     </div>
   );

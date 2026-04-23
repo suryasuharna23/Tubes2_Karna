@@ -317,36 +317,188 @@
   transform: translateY(3px);
 }
 
-.results-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #2b2a2a;
-  border: 1px solid rgba(66, 72, 74, 0.3);
-  border-radius: 4px;
-  padding: 3px;
-}
-
-.results-view-toggle__btn {
-  border: none;
-  background: transparent;
-  color: #c2c7ca;
-  font: 400 11px/1.4 'JetBrains Mono', monospace;
-  padding: 4px 8px;
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.results-view-toggle__btn--active {
-  background: rgba(239, 188, 148, 0.18);
-  color: #efbc94;
-}
-
 .results-panel__canvas {
   flex: 1;
   background: #0f0e0e;
   padding: 20px;
   overflow: auto;
+}
+
+.flow-tree-wrapper {
+  position: relative;
+  height: 520px;
+  min-height: 520px;
+  width: 100%;
+  border: 1px solid rgba(239, 188, 148, 0.25);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #161515;
+}
+
+@media (max-width: 1280px) {
+  .flow-tree-wrapper {
+    height: 460px;
+    min-height: 460px;
+  }
+}
+
+.results-warning {
+  margin: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(239, 188, 148, 0.35);
+  background: rgba(239, 188, 148, 0.09);
+  color: #efbc94;
+  border-radius: 4px;
+  font: 400 11px/1.35 'JetBrains Mono', monospace;
+}
+
+.flow-tree-hint {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 15;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(22, 21, 21, 0.85);
+  color: #efbc94;
+  border: 1px solid rgba(239, 188, 148, 0.25);
+  font: 400 10px/1.3 'JetBrains Mono', monospace;
+}
+
+.flow-playback-controls {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 21, 21, 0.85);
+  border: 1px solid rgba(239, 188, 148, 0.25);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+.flow-playback-controls__btn,
+.flow-playback-controls__select {
+  border: 1px solid rgba(239, 188, 148, 0.3);
+  background: #2b2a2a;
+  color: #f2dcc6;
+  font: 400 10px/1.25 'JetBrains Mono', monospace;
+  border-radius: 2px;
+  height: 24px;
+}
+
+.flow-playback-controls__btn {
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.flow-playback-controls__btn:hover {
+  border-color: rgba(239, 188, 148, 0.7);
+}
+
+.flow-playback-controls__label {
+  font: 400 10px/1.3 'JetBrains Mono', monospace;
+  color: #c2c7ca;
+}
+
+.flow-playback-controls__select {
+  min-width: 56px;
+  padding: 0 6px;
+  outline: none;
+}
+
+.flow-tree-wrapper .react-flow {
+  background: #161515;
+}
+
+.flow-tree-wrapper .react-flow__controls,
+.flow-tree-wrapper .react-flow__minimap {
+  border: 1px solid rgba(66, 72, 74, 0.35);
+  box-shadow: none;
+}
+
+.flow-tree-wrapper .react-flow__controls-button {
+  background: #2b2a2a;
+  color: #c2c7ca;
+  border-bottom-color: rgba(66, 72, 74, 0.35);
+}
+
+.flow-tree-wrapper .react-flow__controls-button svg {
+  fill: currentcolor;
+}
+
+.flow-tree-wrapper .react-flow__edge-path {
+  stroke: rgba(239, 188, 148, 0.5);
+  stroke-width: 1.3;
+}
+
+.flow-tree-wrapper .react-flow__edge.animated .react-flow__edge-path {
+  stroke: rgba(239, 188, 148, 0.9);
+}
+
+.flow-tree-wrapper .react-flow__edge.animated {
+  z-index: 8;
+}
+
+.flow-tree-wrapper .react-flow__edge.animated .react-flow__edge-path {
+  animation: flowEdgeDash 0.95s linear infinite;
+}
+
+.flow-tree-wrapper .react-flow__node {
+  width: fit-content;
+  border: 1px solid rgba(239, 188, 148, 0.4);
+  background: #2b2a2a;
+  color: #fff2e6;
+  border-radius: 2px;
+  padding: 7px 12px;
+  font: 400 12px/1.35 'JetBrains Mono', monospace;
+  max-width: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 180ms ease, box-shadow 220ms ease;
+  animation: flowNodeFadeIn 280ms ease;
+}
+
+.react-flow__handle { opacity: 0; }
+
+.flow-tree-wrapper .react-flow__node.flow-node--matched {
+  border: 2px solid #ffd7b6;
+  background: rgba(239, 188, 148, 0.2);
+  color: #fff9f3;
+  box-shadow: 0 0 0 1px rgba(239, 188, 148, 0.45), 0 0 24px rgba(239, 188, 148, 0.45);
+  animation: flowNodeMatchPulse 1.35s ease-in-out infinite;
+}
+
+@keyframes flowEdgeDash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes flowNodeFadeIn {
+  from {
+    opacity: 0;
+    filter: blur(1.5px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes flowNodeMatchPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(239, 188, 148, 0.45), 0 0 24px rgba(239, 188, 148, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 215, 182, 0.82), 0 0 34px rgba(239, 188, 148, 0.62);
+  }
 }
 
 .dom-tree {
@@ -393,69 +545,6 @@
   margin-top: 8px;
   padding-left: 13px;
   border-left: 1px solid rgba(66, 72, 74, 0.5);
-}
-
-.path-tree {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 0;
-}
-
-.path-tree__connector {
-  display: block;
-  width: 1px;
-  height: 24px;
-  background: rgba(66, 72, 74, 0.7);
-}
-
-.path-node {
-  border: 1px solid rgba(66, 72, 74, 0.3);
-  background: #201f1f;
-  color: #e6e1e1;
-  border-radius: 2px;
-  padding: 8px 16px;
-  font: 400 12px/1.35 'JetBrains Mono', monospace;
-}
-
-.path-node--match {
-  border-color: #efbc94;
-  background: rgba(239, 188, 148, 0.08);
-  box-shadow: 0 0 12px rgba(239, 188, 148, 0.18);
-}
-
-.path-node--target {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  border: 2px solid #efbc94;
-  border-radius: 4px;
-  background: rgba(239, 188, 148, 0.08);
-  box-shadow: 0 0 15px rgba(239, 188, 148, 0.2);
-  padding: 12px 20px;
-}
-
-.path-node__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #efbc94;
-}
-
-.path-node__label {
-  color: inherit;
-  font: inherit;
-}
-
-.path-node--target .path-node__label {
-  color: #efbc94;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.path-node__text {
-  color: #c2c7ca;
-  font: 400 12px/1.35 'JetBrains Mono', monospace;
 }
 
 .results-panel__status {
