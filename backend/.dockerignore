@@ -1,0 +1,5 @@
+.git
+.vscode
+**/*_test.go
+README.md
+Dockerfile
