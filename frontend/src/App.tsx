@@ -411,14 +411,6 @@ function App() {
                     <span>Selector B: {selectorB || '—'}</span>
                   </li>
                   <li>
-                    <span className="lca-legend__chip lca-legend__chip--node-a" />
-                    <span>Node A: {lcaResponse.node_a ? getNodeLabel(lcaResponse.node_a) : '—'}</span>
-                  </li>
-                  <li>
-                    <span className="lca-legend__chip lca-legend__chip--node-b" />
-                    <span>Node B: {lcaResponse.node_b ? getNodeLabel(lcaResponse.node_b) : '—'}</span>
-                  </li>
-                  <li>
                     <span className="lca-legend__chip lca-legend__chip--lca" />
                     <span>LCA: {lcaResponse.lca ? getNodeLabel(lcaResponse.lca) : 'tidak ditemukan'}</span>
                   </li>
