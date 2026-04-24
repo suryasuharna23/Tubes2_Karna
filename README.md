@@ -22,11 +22,11 @@ Pada proyek ini, kedua algoritma mencatat:
 ## Requirement
 
 ### Backend
-- Go 1.25.6 (sesuai `go.mod`)
+- Go 1.25.6 (sesuai `backend/go.mod`)
 
 ### Frontend
-- Node.js 18+ (disarankan LTS terbaru)
-- npm (biasanya sudah termasuk dengan Node.js)
+- Node.js `^20.19.0` atau `>=22.12.0` 
+- npm
 
 ## Instalasi
 
@@ -42,10 +42,10 @@ go mod tidy
 
 ```bash
 cd ../frontend
-npm install
+npm ci
 ```
 
-## Menjalankan Program (Development)
+## Run Program (Development)
 
 Jalankan backend dan frontend di terminal terpisah.
 
@@ -68,6 +68,65 @@ npm run dev
 
 Frontend Vite biasanya berjalan di:
 - `http://localhost:5173`
+
+## Run Program (Docker)
+
+### Dependency Tambahan untuk Docker
+- Docker Desktop (Windows/macOS) atau Docker Engine + Docker Compose plugin (Linux)
+
+### 1) (Opsional) Atur Port
+
+Copy file contoh env Docker:
+
+```bash
+cp .env.docker.example .env
+```
+
+Atau di PowerShell:
+
+```powershell
+Copy-Item .env.docker.example .env
+```
+
+Default:
+- `BACKEND_PORT=8080`
+- `FRONTEND_PORT=5173`
+
+### 2) Build dan Run Semua Service
+
+```bash
+docker compose up --build
+```
+
+Untuk background mode:
+
+```bash
+docker compose up --build -d
+```
+
+### 3) Verifikasi
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
+Akses:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8080`
+
+### 4) Stop Service
+
+```bash
+docker compose down
+```
+
+Jika ingin hapus image lokal hasil build:
+
+```bash
+docker compose down --rmi local
+```
 
 ## Compile / Build
 
