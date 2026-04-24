@@ -176,8 +176,8 @@ export function useFlowEngine(
   }, [revealNodeIdSet, baseNodes, visibleFlowEdges, revealNodeOrder.length, stopNodeAnimation]);
 
   const matchedFlowNodeIdSet = useMemo(() => new Set(
-    animatedNodes.filter((node) => node.className?.includes('flow-node--matched')).map((node) => node.id)
-  ), [animatedNodes]);
+    baseNodes.filter((node) => node.className?.includes('flow-node--matched')).map((node) => node.id)
+  ), [baseNodes]);
 
   const revealedMatchedCount = useMemo(() => {
     let total = 0;

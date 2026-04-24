@@ -41,9 +41,70 @@ func NewSearchEngine(root *models.Node, selector, algo string, count int) *Searc
 func (se *SearchEngine) Execute() {
 	switch se.Algorithm {
 	case "BFS":
+		if se.ResultCount > 0 {
+			se.runBFSDeterministic()
+			return
+		}
 		se.runBFS()
 	case "DFS":
+		if se.ResultCount > 0 {
+			se.runDFSDeterministic()
+			return
+		}
 		se.runDFS()
+	}
+}
+
+func (se *SearchEngine) runBFSDeterministic() {
+	if se.RootNode == nil {
+		return
+	}
+
+	queue := []*models.Node{se.RootNode}
+	for len(queue) > 0 && !se.done.Load() {
+		n := queue[0]
+		queue = queue[1:]
+		if n == nil {
+			continue
+		}
+
+		matched := se.isMatch(n, se.Selector)
+		if se.recordVisit(n, matched) {
+			return
+		}
+
+		for _, child := range n.Children {
+			if child != nil {
+				queue = append(queue, child)
+			}
+		}
+	}
+}
+
+func (se *SearchEngine) runDFSDeterministic() {
+	if se.RootNode == nil {
+		return
+	}
+
+	stack := []*models.Node{se.RootNode}
+	for len(stack) > 0 && !se.done.Load() {
+		n := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if n == nil {
+			continue
+		}
+
+		matched := se.isMatch(n, se.Selector)
+		if se.recordVisit(n, matched) {
+			return
+		}
+
+		for i := len(n.Children) - 1; i >= 0; i-- {
+			child := n.Children[i]
+			if child != nil {
+				stack = append(stack, child)
+			}
+		}
 	}
 }
 
