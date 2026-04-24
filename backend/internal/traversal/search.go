@@ -16,9 +16,9 @@ type SearchEngine struct {
 	NodesVisited int
 	Log          []string
 	Matches      []*models.Node
-	mu   sync.Mutex  
-	done atomic.Bool 
-	sem  chan struct{}
+	mu           sync.Mutex
+	done         atomic.Bool
+	sem          chan struct{}
 }
 
 func NewSearchEngine(root *models.Node, selector, algo string, count int) *SearchEngine {
@@ -165,6 +165,55 @@ func FindFirstMatch(root *models.Node, selector string) *models.Node {
 		}
 	}
 	return nil
+}
+
+func FindFirstTwoMatches(root *models.Node, selectorA, selectorB string) (*models.Node, *models.Node) {
+	if root == nil {
+		return nil, nil
+	}
+
+	selectorA = strings.TrimSpace(selectorA)
+	selectorB = strings.TrimSpace(selectorB)
+	if selectorA == "" || selectorB == "" {
+		return nil, nil
+	}
+
+	se := &SearchEngine{}
+	stack := []*models.Node{root}
+
+	var nodeA *models.Node
+	var nodeB *models.Node
+	sameSelector := selectorA == selectorB
+
+	for len(stack) > 0 {
+		n := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if n == nil {
+			continue
+		}
+
+		if nodeA == nil && se.isMatch(n, selectorA) {
+			nodeA = n
+			if sameSelector {
+				nodeB = n
+				break
+			}
+		}
+
+		if nodeB == nil && se.isMatch(n, selectorB) {
+			nodeB = n
+		}
+
+		if nodeA != nil && nodeB != nil {
+			break
+		}
+
+		for i := len(n.Children) - 1; i >= 0; i-- {
+			stack = append(stack, n.Children[i])
+		}
+	}
+
+	return nodeA, nodeB
 }
 
 func parseSelector(sel string) []string {

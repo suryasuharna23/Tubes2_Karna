@@ -62,20 +62,17 @@ func HandleLCA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodeA := traversal.FindFirstMatch(domTree, req.SelectorA)
+	nodeA, nodeB := traversal.FindFirstTwoMatches(domTree, req.SelectorA, req.SelectorB)
 	if nodeA == nil {
 		http.Error(w, fmt.Sprintf("Tidak ada node yang cocok dengan selector_a: %q", req.SelectorA), http.StatusNotFound)
 		return
 	}
-	nodeB := traversal.FindFirstMatch(domTree, req.SelectorB)
 	if nodeB == nil {
 		http.Error(w, fmt.Sprintf("Tidak ada node yang cocok dengan selector_b: %q", req.SelectorB), http.StatusNotFound)
 		return
 	}
 
-	builder := traversal.NewLCABuilder()
-	builder.Preprocess(domTree)
-	lcaNode := builder.GetLCA(nodeA, nodeB)
+	lcaNode := traversal.GetLCAByParent(nodeA, nodeB)
 
 	executionTime := float64(time.Since(start).Microseconds()) / 1000.0
 

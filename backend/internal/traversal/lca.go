@@ -142,3 +142,22 @@ func countNodes(root *models.Node) int {
 	}
 	return n
 }
+
+func GetLCAByParent(u, v *models.Node) *models.Node {
+	if u == nil || v == nil {
+		return nil
+	}
+
+	ancestors := make(map[*models.Node]struct{})
+	for current := u; current != nil; current = current.Parent {
+		ancestors[current] = struct{}{}
+	}
+
+	for current := v; current != nil; current = current.Parent {
+		if _, exists := ancestors[current]; exists {
+			return current
+		}
+	}
+
+	return nil
+}
