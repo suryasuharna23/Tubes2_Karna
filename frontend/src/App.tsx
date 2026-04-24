@@ -66,6 +66,18 @@ function App() {
     return map;
   }, [featureMode, response, lcaResponse]);
 
+  const selectorTargetCount = useMemo(() => {
+    if (featureMode !== 'lca' || !lcaResponse?.node_a || !lcaResponse?.node_b) {
+      return 0;
+    }
+
+    return getNodeSignature(lcaResponse.node_a) === getNodeSignature(lcaResponse.node_b) ? 1 : 2;
+  }, [featureMode, lcaResponse]);
+
+  const playbackResultLimit = featureMode === 'lca'
+    ? selectorTargetCount
+    : resultCount;
+
   const maximumDepth = useMemo(() => calculateMaxDepth(activeTree), [activeTree]);
 
   const { baseNodes, baseEdges, truncated, renderedNodes } = useMemo(() => {
@@ -96,7 +108,7 @@ function App() {
     revealedMatchedCount,
     handleTogglePlayback,
     handleRestartPlayback,
-  } = useFlowEngine(baseNodes, baseEdges, algorithm, resultCount, featureMode === 'search');
+  } = useFlowEngine(baseNodes, baseEdges, algorithm, playbackResultLimit, true);
 
   const visibleFlowNodeCount = visibleFlowNodes.length;
 
@@ -392,6 +404,14 @@ function App() {
                 <ul className="lca-legend">
                   <li>
                     <span className="lca-legend__chip lca-legend__chip--node-a" />
+                    <span>Selector A: {selectorA || '—'}</span>
+                  </li>
+                  <li>
+                    <span className="lca-legend__chip lca-legend__chip--node-b" />
+                    <span>Selector B: {selectorB || '—'}</span>
+                  </li>
+                  <li>
+                    <span className="lca-legend__chip lca-legend__chip--node-a" />
                     <span>Node A: {lcaResponse.node_a ? getNodeLabel(lcaResponse.node_a) : '—'}</span>
                   </li>
                   <li>
@@ -434,8 +454,9 @@ function App() {
                 <div className="flow-tree-hint">
                   Rendered: {visibleFlowNodeCount}/{renderedNodes} nodes
                   {featureMode === 'search' && resultCount > 0 && ` · Matches ${revealedMatchedCount}/${resultCount}`}
+                  {featureMode === 'lca' && selectorTargetCount > 0 && ` · Selector targets ${Math.min(revealedMatchedCount, selectorTargetCount)}/${selectorTargetCount}`}
                 </div>
-                {featureMode === 'search' && (
+                {hasActiveResponse && (
                   <div className="flow-playback-controls">
                     <button type="button" className="flow-playback-controls__btn" onClick={handleTogglePlayback}>
                       {playbackCompleted || reachedResultLimit ? 'Replay' : isPlaybackActive ? 'Pause' : 'Play'}
@@ -504,9 +525,15 @@ function App() {
             <span className="status-ok">
               {featureMode === 'lca'
                 ? hasActiveResponse
-                  ? lcaResponse?.lca
-                    ? 'LCA RESOLVED'
-                    : 'LCA NOT FOUND'
+                  ? !playbackCompleted && !reachedResultLimit
+                    ? isPlaybackActive
+                      ? 'LCA ANIMATING'
+                      : 'LCA PAUSED'
+                    : reachedResultLimit
+                      ? 'LCA RESOLVED'
+                      : lcaResponse?.lca
+                        ? 'LCA VISUALIZED'
+                        : 'LCA NOT FOUND'
                   : 'LCA IDLE'
                 : response
                   ? !playbackCompleted && !reachedResultLimit

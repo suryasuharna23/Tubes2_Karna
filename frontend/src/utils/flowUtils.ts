@@ -19,8 +19,24 @@ export const normalizeClasses = (node?: DOMNode): string => {
   return Array.isArray(classes) ? classes.join(' ') : classes;
 };
 
+const normalizeAttributesForSignature = (node?: DOMNode): string => {
+  const attributes = node?.attributes;
+  if (!attributes) return '';
+
+  return Object.entries(attributes)
+    .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('|');
+};
+
 export const getNodeSignature = (node: DOMNode): string => {
-  return [node.tag_name, node.id ?? '', normalizeClasses(node), node.text_content ?? ''].join('|');
+  return [
+    node.tag_name,
+    node.id ?? '',
+    normalizeClasses(node),
+    normalizeAttributesForSignature(node),
+    node.text_content ?? '',
+  ].join('|');
 };
 
 export const getNodeLabel = (node: DOMNode): string => {
@@ -99,7 +115,11 @@ export const buildFlowTree = (
     const nodeLabel = baseLabel;
 
     const className = role
-      ? `flow-node flow-node--${role}${role === 'matched' ? '' : ' flow-node--highlighted'}`
+      ? role === 'matched'
+        ? 'flow-node flow-node--matched'
+        : role === 'node-a' || role === 'node-b'
+          ? `flow-node flow-node--${role} flow-node--highlighted flow-node--matched`
+          : `flow-node flow-node--${role} flow-node--highlighted`
       : 'flow-node';
 
     nodes.push({
